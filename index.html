@@ -906,6 +906,14 @@ html, body {
   // # Filtering
   function matchesFilter(entry) {
     if (!state.activeLevels.has(entry.level)) return false;
+    if (state.filterIntegration) {
+      const fi = state.filterIntegration.toLowerCase();
+      if (!(entry.integration || '').toLowerCase().includes(fi)) return false;
+    }
+    if (state.filterIdentifier) {
+      const fid = state.filterIdentifier.toLowerCase();
+      if (!(entry.identifier || '').toLowerCase().includes(fid)) return false;
+    }
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
       const haystack = [
@@ -1355,7 +1363,9 @@ html, body {
       }, 300);
     }
     dom.filterIntegration.addEventListener('input', onFilterChange);
+    dom.filterIntegration.addEventListener('change', onFilterChange);
     dom.filterIdentifier.addEventListener('input', onFilterChange);
+    dom.filterIdentifier.addEventListener('change', onFilterChange);
     dom.searchInput.addEventListener('input', onFilterChange);
 
     // # Log row click (event delegation)
