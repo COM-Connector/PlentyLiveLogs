@@ -659,6 +659,7 @@ html, body {
       <div class="toolbar-separator"></div>
       <label for="searchInput" class="sr-only">Search logs</label>
       <input type="text" id="searchInput" class="input search-input" placeholder="Search...">
+      <button class="btn btn-sm" id="resetFiltersBtn" title="Reset all filters" aria-label="Reset all filters">✕ Reset</button>
     </nav>
 
     <!-- Log Table -->
@@ -1366,6 +1367,18 @@ html, body {
     dom.filterIntegration.addEventListener('change', onFilterChange);
     dom.filterIdentifier.addEventListener('input', onFilterChange);
     dom.filterIdentifier.addEventListener('change', onFilterChange);
+
+    document.getElementById('resetFiltersBtn').addEventListener('click', () => {
+      dom.filterIntegration.value = '';
+      dom.filterIdentifier.value = '';
+      dom.searchInput.value = '';
+      state.filterIntegration = '';
+      state.filterIdentifier = '';
+      state.searchQuery = '';
+      state.activeLevels = new Set(['error','critical','emergency','alert','warning','notice','info','debug']);
+      levelBtns.forEach(b => b.classList.add('active'));
+      renderLogs();
+    });
     dom.searchInput.addEventListener('input', onFilterChange);
 
     // # Log row click (event delegation)
