@@ -651,9 +651,11 @@ html, body {
       </div>
       <div class="toolbar-separator"></div>
       <label for="filterIntegration" class="sr-only">Filter by integration</label>
-      <input type="text" id="filterIntegration" class="input filter-input" placeholder="Integration...">
+      <input type="text" id="filterIntegration" class="input filter-input" placeholder="Integration..." list="dlIntegration" autocomplete="off">
+      <datalist id="dlIntegration"></datalist>
       <label for="filterIdentifier" class="sr-only">Filter by identifier</label>
-      <input type="text" id="filterIdentifier" class="input filter-input" placeholder="Identifier...">
+      <input type="text" id="filterIdentifier" class="input filter-input" placeholder="Identifier..." list="dlIdentifier" autocomplete="off">
+      <datalist id="dlIdentifier"></datalist>
       <div class="toolbar-separator"></div>
       <label for="searchInput" class="sr-only">Search logs</label>
       <input type="text" id="searchInput" class="input search-input" placeholder="Search...">
@@ -730,7 +732,9 @@ html, body {
     searchQuery: '',
     selectedLog: null,
     maxEntries: 500,
-    audioCtx: null
+    audioCtx: null,
+    knownIntegrations: new Set(),
+    knownIdentifiers: new Set()
   };
 
   // # DOM Cache
@@ -989,6 +993,27 @@ html, body {
     dom.statusText.textContent = state.paused ? 'Paused' : 'Connected';
   }
 
+  function updateSuggestions(entries) {
+    let changed = false;
+    for (const e of entries) {
+      if (e.integration && !state.knownIntegrations.has(e.integration)) {
+        state.knownIntegrations.add(e.integration);
+        changed = true;
+      }
+      if (e.identifier && !state.knownIdentifiers.has(e.identifier)) {
+        state.knownIdentifiers.add(e.identifier);
+        changed = true;
+      }
+    }
+    if (!changed) return;
+    const dlInt = document.getElementById('dlIntegration');
+    const dlId = document.getElementById('dlIdentifier');
+    dlInt.innerHTML = Array.from(state.knownIntegrations).sort()
+      .map(v => `<option value="${escapeHtml(v)}">`).join('');
+    dlId.innerHTML = Array.from(state.knownIdentifiers).sort()
+      .map(v => `<option value="${escapeHtml(v)}">`).join('');
+  }
+
   function updateLastFetch() {
     dom.lastFetch.textContent = `Last fetch: ${new Date().toLocaleTimeString('en-GB')}`;
   }
@@ -1130,6 +1155,17 @@ html, body {
 
         if (newEntries.length > 0) {
           appendNewLogs(newEntries);
+        }
+        updateSuggestions(data.entries);
+        // API also provides filter suggestions at top level
+        if (data.filters) {
+          if (data.filters.integration) {
+            Object.keys(data.filters.integration).forEach(v => state.knownIntegrations.add(v));
+          }
+          if (data.filters.identifier) {
+            Object.keys(data.filters.identifier).forEach(v => state.knownIdentifiers.add(v));
+          }
+          updateSuggestions([]);
         }
       }
       updateStatus();
