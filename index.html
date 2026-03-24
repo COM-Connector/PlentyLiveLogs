@@ -851,6 +851,7 @@ html, body {
     const query = new URLSearchParams();
     query.set('itemsPerPage', '50');
     query.set('page', '1');
+    query.set('with', 'additionalInfo,references');
     if (params.fromDate) query.set('fromDate', params.fromDate);
     if (state.filterIntegration) query.set('integration', state.filterIntegration);
     if (state.filterIdentifier) query.set('identifier', state.filterIdentifier);
@@ -1000,10 +1001,12 @@ html, body {
     dom.detailPanel.setAttribute('aria-hidden', 'false');
     dom.detailOverlay.setAttribute('aria-hidden', 'false');
 
-    const additionalInfoStr = entry.additionalInfo
-      ? JSON.stringify(entry.additionalInfo, null, 2) : 'null';
-    const referencesStr = entry.references && entry.references.length
-      ? JSON.stringify(entry.references, null, 2) : '[]';
+    const hasAdditionalInfo = entry.additionalInfo && typeof entry.additionalInfo === 'object' && Object.keys(entry.additionalInfo).length > 0;
+    const additionalInfoStr = hasAdditionalInfo
+      ? JSON.stringify(entry.additionalInfo, null, 2) : null;
+    const hasReferences = Array.isArray(entry.references) && entry.references.length > 0;
+    const referencesStr = hasReferences
+      ? JSON.stringify(entry.references, null, 2) : null;
 
     dom.detailBody.innerHTML = `
       <div class="detail-field">
@@ -1042,27 +1045,27 @@ html, body {
         <div class="detail-label">Translation (DE)</div>
         <div class="detail-value">${escapeHtml(entry.translations_de)}</div>
       </div>` : ''}
-      <div class="detail-field">
+      ${hasAdditionalInfo ? `<div class="detail-field">
         <div class="detail-label">Additional Info</div>
         <div class="detail-json">
           <button class="btn btn-sm copy-btn" type="button" data-copy="additionalInfo" aria-label="Copy additional info to clipboard">Copy</button>
           <pre>${syntaxHighlightJson(additionalInfoStr)}</pre>
         </div>
-      </div>
-      <div class="detail-field">
+      </div>` : ''}
+      ${hasReferences ? `<div class="detail-field">
         <div class="detail-label">References</div>
         <div class="detail-json">
           <button class="btn btn-sm copy-btn" type="button" data-copy="references" aria-label="Copy references to clipboard">Copy</button>
           <pre>${syntaxHighlightJson(referencesStr)}</pre>
         </div>
-      </div>
+      </div>` : ''}
     `;
 
     // # Copy buttons
     dom.detailBody.querySelectorAll('.copy-btn').forEach(btn => {
       btn.addEventListener('click', function() {
         const field = this.dataset.copy;
-        const text = field === 'additionalInfo' ? additionalInfoStr : referencesStr;
+        const text = field === 'additionalInfo' ? (additionalInfoStr || '{}') : (referencesStr || '[]');
         navigator.clipboard.writeText(text).then(() => {
           this.textContent = 'Copied!';
           setTimeout(() => { this.textContent = 'Copy'; }, 1500);
