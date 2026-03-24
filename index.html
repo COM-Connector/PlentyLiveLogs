@@ -1,0 +1,1371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlentyONE Live Log Viewer</title>
+<style>
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg-primary: #0d1117;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-hover: #30363d;
+  --border: #30363d;
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --accent: #58a6ff;
+  --accent-hover: #79c0ff;
+  --error: #f85149;
+  --error-bg: rgba(248,81,73,0.15);
+  --warning: #d29922;
+  --warning-bg: rgba(210,153,34,0.15);
+  --info: #58a6ff;
+  --info-bg: rgba(88,166,255,0.15);
+  --debug: #8b949e;
+  --debug-bg: rgba(139,148,158,0.15);
+  --critical: #b62324;
+  --critical-bg: rgba(182,35,36,0.15);
+  --alert: #a371f7;
+  --alert-bg: rgba(163,113,247,0.15);
+  --notice: #3fb950;
+  --notice-bg: rgba(63,185,80,0.15);
+  --emergency: #db61a2;
+  --emergency-bg: rgba(219,97,162,0.15);
+  --success: #3fb950;
+  --font-mono: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'SF Mono', 'Consolas', 'Liberation Mono', monospace;
+  --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --radius: 6px;
+  --transition: 150ms ease;
+}
+
+html, body {
+  height: 100%;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-primary); }
+::-webkit-scrollbar-thumb { background: var(--bg-tertiary); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bg-hover); }
+
+/* Layout */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.header-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+  white-space: nowrap;
+}
+
+.btn:hover { background: var(--bg-hover); border-color: var(--text-muted); }
+.btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg-primary);
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.btn-danger {
+  border-color: var(--error);
+  color: var(--error);
+}
+.btn-danger:hover { background: var(--error-bg); }
+
+.btn-sm { padding: 2px 8px; font-size: 11px; }
+
+.btn-icon {
+  padding: 4px 8px;
+  min-width: 32px;
+  justify-content: center;
+}
+
+/* Toggle buttons (level filters) */
+.btn-toggle {
+  opacity: 0.5;
+  transition: opacity var(--transition), background var(--transition);
+}
+.btn-toggle.active { opacity: 1; }
+
+/* Inputs */
+.input {
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  transition: border-color var(--transition);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.input::placeholder { color: var(--text-muted); }
+
+/* Login Screen */
+.login-overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.login-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+  width: 100%;
+  max-width: 420px;
+  margin: 16px;
+}
+
+.login-card h1 {
+  font-size: 20px;
+  color: var(--accent);
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.login-card p {
+  color: var(--text-secondary);
+  font-size: 12px;
+  margin-bottom: 24px;
+}
+
+.form-group {
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.form-group .input {
+  width: 100%;
+  padding: 8px 12px;
+}
+
+.form-group .input-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.cors-config {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.checkbox-row input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+.login-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.login-actions .btn { flex: 1; padding: 10px; justify-content: center; font-size: 13px; }
+
+.login-error {
+  color: var(--error);
+  font-size: 12px;
+  margin-top: 12px;
+  display: none;
+}
+
+/* Toolbar / Filters */
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.toolbar-separator {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 4px;
+}
+
+.filter-input {
+  width: 140px;
+}
+
+.search-input {
+  width: 200px;
+}
+
+/* Log Table */
+.log-container {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.log-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.log-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg-secondary);
+}
+
+.log-table th {
+  padding: 6px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.log-table td {
+  padding: 5px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  vertical-align: middle;
+}
+
+.log-table .col-time { width: 80px; }
+.log-table .col-level { width: 90px; }
+.log-table .col-integration { width: 180px; }
+.log-table .col-identifier { width: 200px; }
+.log-table .col-message { width: auto; }
+
+.log-row {
+  cursor: pointer;
+  transition: background var(--transition);
+}
+.log-row:hover { background: var(--bg-tertiary); }
+.log-row.selected { background: var(--bg-hover); }
+
+/* New log animation */
+@keyframes fadeIn {
+  from { background-color: rgba(88,166,255,0.1); }
+  to { background-color: transparent; }
+}
+.log-row.new-entry {
+  animation: fadeIn 1.5s ease-out;
+}
+
+/* Level Badge */
+.level-badge {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.level-error { color: var(--error); background: var(--error-bg); }
+.level-warning { color: var(--warning); background: var(--warning-bg); }
+.level-info { color: var(--info); background: var(--info-bg); }
+.level-debug { color: var(--debug); background: var(--debug-bg); }
+.level-critical { color: var(--critical); background: var(--critical-bg); }
+.level-alert { color: var(--alert); background: var(--alert-bg); }
+.level-notice { color: var(--notice); background: var(--notice-bg); }
+.level-emergency { color: var(--emergency); background: var(--emergency-bg); }
+
+/* Detail Panel */
+.detail-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, visibility 200ms ease;
+}
+.detail-overlay.open { opacity: 1; visibility: visible; }
+
+.detail-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(600px, 90vw);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  z-index: 101;
+  transform: translateX(100%);
+  transition: transform 250ms ease;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.detail-panel.open { transform: translateX(0); }
+
+.detail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.detail-header h2 {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.detail-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.detail-field {
+  margin-bottom: 16px;
+}
+
+.detail-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.detail-json {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 12px;
+  line-height: 1.6;
+  position: relative;
+}
+
+.detail-json .copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+/* JSON Syntax Highlighting */
+.json-key { color: var(--accent); }
+.json-string { color: var(--notice); }
+.json-number { color: var(--warning); }
+.json-boolean { color: var(--alert); }
+.json-null { color: var(--text-muted); }
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 4px 16px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+  min-height: 28px;
+}
+
+.status-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+.status-dot.connected { background: var(--success); }
+.status-dot.disconnected { background: var(--error); }
+.status-dot.polling { background: var(--warning); animation: pulse 1.5s infinite; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.status-item {
+  display: flex;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.status-spacer { flex: 1; }
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.empty-state-text {
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.empty-state-hint {
+  font-size: 12px;
+}
+
+/* Select */
+.select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+.select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .header { flex-wrap: wrap; }
+  .toolbar { padding: 6px 8px; }
+  .filter-input { width: 100px; }
+  .search-input { width: 140px; }
+  .log-table .col-integration { display: none; }
+  .log-table th:nth-child(3),
+  .log-table td:nth-child(3) { display: none; }
+}
+
+/* Visually hidden (sr-only) */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  border: 0;
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <!-- Login Overlay -->
+  <div class="login-overlay" id="loginOverlay">
+    <div class="login-card" role="dialog" aria-label="Connection Settings">
+      <h1>PlentyONE Live Logs</h1>
+      <p>Connect to your PlentyONE system to stream logs in real-time.</p>
+      <div class="form-group">
+        <label for="pidInput">PID (System ID)</label>
+        <input type="text" id="pidInput" class="input" placeholder="e.g. 60932" autocomplete="off">
+        <div class="input-hint">Your PlentyONE system ID</div>
+      </div>
+      <div class="form-group">
+        <label for="tokenInput">Bearer Token</label>
+        <input type="password" id="tokenInput" class="input" placeholder="Your API token" autocomplete="off">
+      </div>
+      <div class="cors-config">
+        <label class="checkbox-row">
+          <input type="checkbox" id="corsToggle" checked>
+          <span>Use CORS Proxy</span>
+        </label>
+        <div class="form-group" id="corsProxyGroup">
+          <label for="corsProxyInput">CORS Proxy Prefix</label>
+          <input type="text" id="corsProxyInput" class="input" value="https://corsproxy.io/?">
+          <div class="input-hint">Or disable and use a browser extension like "CORS Unblock"</div>
+        </div>
+      </div>
+      <div class="login-error" id="loginError" role="alert"></div>
+      <div class="login-actions">
+        <button class="btn btn-primary" id="connectBtn" type="button">Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main UI (hidden until connected) -->
+  <div id="mainUI" style="display:none;flex-direction:column;height:100vh;">
+    <!-- Header -->
+    <header class="header" role="banner">
+      <span class="header-title">PlentyONE Live Logs</span>
+      <div class="header-actions">
+        <label class="checkbox-row" style="margin:0;font-size:12px;">
+          <input type="checkbox" id="soundToggle">
+          <span>Sound</span>
+        </label>
+        <label class="checkbox-row" style="margin:0;font-size:12px;">
+          <input type="checkbox" id="autoScrollToggle" checked>
+          <span>Auto-Scroll</span>
+        </label>
+        <div class="toolbar-separator"></div>
+        <label for="intervalSelect" class="sr-only">Polling interval</label>
+        <select id="intervalSelect" class="select" aria-label="Polling interval">
+          <option value="3000">3s</option>
+          <option value="5000" selected>5s</option>
+          <option value="10000">10s</option>
+          <option value="30000">30s</option>
+          <option value="60000">60s</option>
+        </select>
+        <button class="btn" id="pauseBtn" type="button" aria-label="Pause polling">Pause</button>
+        <div class="toolbar-separator"></div>
+        <button class="btn btn-sm" id="exportBtn" type="button" aria-label="Export logs as JSON">Export</button>
+        <button class="btn btn-sm" id="clearBtn" type="button" aria-label="Clear all logs">Clear</button>
+        <button class="btn btn-sm btn-danger" id="disconnectBtn" type="button">Disconnect</button>
+      </div>
+    </header>
+
+    <!-- Filters -->
+    <nav class="toolbar" role="toolbar" aria-label="Log filters">
+      <div class="toolbar-group" role="group" aria-label="Level filters">
+        <button class="btn btn-sm btn-toggle level-error active" data-level="error" type="button">Error</button>
+        <button class="btn btn-sm btn-toggle level-critical active" data-level="critical" type="button">Critical</button>
+        <button class="btn btn-sm btn-toggle level-emergency active" data-level="emergency" type="button">Emergency</button>
+        <button class="btn btn-sm btn-toggle level-alert active" data-level="alert" type="button">Alert</button>
+        <button class="btn btn-sm btn-toggle level-warning active" data-level="warning" type="button">Warning</button>
+        <button class="btn btn-sm btn-toggle level-notice active" data-level="notice" type="button">Notice</button>
+        <button class="btn btn-sm btn-toggle level-info active" data-level="info" type="button">Info</button>
+        <button class="btn btn-sm btn-toggle level-debug active" data-level="debug" type="button">Debug</button>
+      </div>
+      <div class="toolbar-separator"></div>
+      <label for="filterIntegration" class="sr-only">Filter by integration</label>
+      <input type="text" id="filterIntegration" class="input filter-input" placeholder="Integration...">
+      <label for="filterIdentifier" class="sr-only">Filter by identifier</label>
+      <input type="text" id="filterIdentifier" class="input filter-input" placeholder="Identifier...">
+      <div class="toolbar-separator"></div>
+      <label for="searchInput" class="sr-only">Search logs</label>
+      <input type="text" id="searchInput" class="input search-input" placeholder="Search...">
+    </nav>
+
+    <!-- Log Table -->
+    <main class="log-container" id="logContainer" role="main">
+      <table class="log-table" role="grid" aria-label="Log entries">
+        <thead>
+          <tr>
+            <th class="col-time" scope="col">Time</th>
+            <th class="col-level" scope="col">Level</th>
+            <th class="col-integration" scope="col">Integration</th>
+            <th class="col-identifier" scope="col">Identifier</th>
+            <th class="col-message" scope="col">Message</th>
+          </tr>
+        </thead>
+        <tbody id="logBody"></tbody>
+      </table>
+      <div class="empty-state" id="emptyState">
+        <div class="empty-state-icon">&#9641;</div>
+        <div class="empty-state-text">Waiting for logs...</div>
+        <div class="empty-state-hint">Logs will appear here once polling starts</div>
+      </div>
+    </main>
+
+    <!-- Status Bar -->
+    <footer class="status-bar" role="status" aria-live="polite">
+      <span class="status-item">
+        <span class="status-dot connected" id="statusDot"></span>
+        <span id="statusText">Connected</span>
+      </span>
+      <span class="status-item" id="lastFetch">Last fetch: --</span>
+      <span class="status-item" id="logCount">0 logs</span>
+      <span class="status-spacer"></span>
+      <span class="status-item" id="pollingStatus">Polling: 5s</span>
+      <span class="status-item">Space=Pause &middot; Esc=Close &middot; C=Clear</span>
+    </footer>
+  </div>
+
+  <!-- Detail Panel -->
+  <div class="detail-overlay" id="detailOverlay" aria-hidden="true"></div>
+  <aside class="detail-panel" id="detailPanel" role="dialog" aria-label="Log detail" aria-hidden="true">
+    <div class="detail-header">
+      <h2>Log Detail</h2>
+      <button class="btn btn-sm btn-icon" id="detailCloseBtn" type="button" aria-label="Close detail panel">&times;</button>
+    </div>
+    <div class="detail-body" id="detailBody"></div>
+  </aside>
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  // # State
+  const state = {
+    pid: '',
+    token: '',
+    useCors: true,
+    corsProxy: 'https://corsproxy.io/?',
+    logs: [],
+    allLogIds: new Set(),
+    lastTimestamp: null,
+    polling: false,
+    paused: false,
+    pollTimer: null,
+    interval: 5000,
+    autoScroll: true,
+    soundEnabled: false,
+    activeLevels: new Set(['error','critical','emergency','alert','warning','notice','info','debug']),
+    filterIntegration: '',
+    filterIdentifier: '',
+    searchQuery: '',
+    selectedLog: null,
+    maxEntries: 500,
+    audioCtx: null
+  };
+
+  // # DOM Cache
+  const dom = {
+    loginOverlay: document.getElementById('loginOverlay'),
+    pidInput: document.getElementById('pidInput'),
+    tokenInput: document.getElementById('tokenInput'),
+    corsToggle: document.getElementById('corsToggle'),
+    corsProxyInput: document.getElementById('corsProxyInput'),
+    corsProxyGroup: document.getElementById('corsProxyGroup'),
+    connectBtn: document.getElementById('connectBtn'),
+    loginError: document.getElementById('loginError'),
+    mainUI: document.getElementById('mainUI'),
+    logContainer: document.getElementById('logContainer'),
+    logBody: document.getElementById('logBody'),
+    emptyState: document.getElementById('emptyState'),
+    pauseBtn: document.getElementById('pauseBtn'),
+    intervalSelect: document.getElementById('intervalSelect'),
+    autoScrollToggle: document.getElementById('autoScrollToggle'),
+    soundToggle: document.getElementById('soundToggle'),
+    exportBtn: document.getElementById('exportBtn'),
+    clearBtn: document.getElementById('clearBtn'),
+    disconnectBtn: document.getElementById('disconnectBtn'),
+    filterIntegration: document.getElementById('filterIntegration'),
+    filterIdentifier: document.getElementById('filterIdentifier'),
+    searchInput: document.getElementById('searchInput'),
+    statusDot: document.getElementById('statusDot'),
+    statusText: document.getElementById('statusText'),
+    lastFetch: document.getElementById('lastFetch'),
+    logCount: document.getElementById('logCount'),
+    pollingStatus: document.getElementById('pollingStatus'),
+    detailOverlay: document.getElementById('detailOverlay'),
+    detailPanel: document.getElementById('detailPanel'),
+    detailBody: document.getElementById('detailBody'),
+    detailCloseBtn: document.getElementById('detailCloseBtn')
+  };
+
+  const levelBtns = document.querySelectorAll('[data-level]');
+
+  // # Helpers
+  function escapeHtml(str) {
+    const d = document.createElement('div');
+    d.textContent = str;
+    return d.innerHTML;
+  }
+
+  function formatTime(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  }
+
+  function formatDate(dateStr) {
+    const d = new Date(dateStr);
+    return d.toLocaleString('en-GB');
+  }
+
+  function formatDateForApi(dateStr) {
+    const d = new Date(dateStr);
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+
+  function shortIntegration(str) {
+    if (!str) return '';
+    const parts = str.split('\\');
+    return parts[parts.length - 1];
+  }
+
+  function truncate(str, len) {
+    if (!str) return '';
+    return str.length > len ? str.substring(0, len) + '...' : str;
+  }
+
+  function syntaxHighlightJson(json) {
+    if (typeof json !== 'string') {
+      json = JSON.stringify(json, null, 2);
+    }
+    return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"(\\u[a-fA-F0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?/g, function(match) {
+        let cls = 'json-string';
+        if (match.endsWith(':')) {
+          cls = 'json-key';
+        }
+        return `<span class="${cls}">${match}</span>`;
+      })
+      .replace(/\b(-?\d+(\.\d+)?([eE][+-]?\d+)?)\b/g, '<span class="json-number">$1</span>')
+      .replace(/\b(true|false)\b/g, '<span class="json-boolean">$1</span>')
+      .replace(/\bnull\b/g, '<span class="json-null">null</span>');
+  }
+
+  // # Audio
+  function playBeep() {
+    if (!state.soundEnabled) return;
+    try {
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = state.audioCtx;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'square';
+      osc.frequency.value = 800;
+      gain.gain.value = 0.1;
+      osc.start();
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15);
+      osc.stop(ctx.currentTime + 0.15);
+    } catch (_) {
+      // # Audio not available
+    }
+  }
+
+  // # API
+  function buildUrl(params) {
+    const base = `https://${state.pid}.plentymarkets-cloud01.com/rest/logs`;
+    const url = state.useCors ? `${state.corsProxy}${encodeURIComponent(base)}` : base;
+    const query = new URLSearchParams();
+    query.set('itemsPerPage', '50');
+    query.set('page', '1');
+    if (params.fromDate) query.set('fromDate', params.fromDate);
+    if (state.filterIntegration) query.set('integration', state.filterIntegration);
+    if (state.filterIdentifier) query.set('identifier', state.filterIdentifier);
+    // # Send active levels as API parameter only if exactly one is active
+    const activeLevels = Array.from(state.activeLevels);
+    if (activeLevels.length === 1) {
+      query.set('level', activeLevels[0]);
+    }
+    return `${url}${url.includes('?') ? '&' : '?'}${query.toString()}`;
+  }
+
+  async function fetchLogs(params = {}) {
+    const url = buildUrl(params);
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${state.token}`,
+        'Accept': 'application/json'
+      }
+    });
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+    return response.json();
+  }
+
+  // # Storage
+  function saveConfig() {
+    localStorage.setItem('plentylogs_pid', state.pid);
+    localStorage.setItem('plentylogs_token', state.token);
+    localStorage.setItem('plentylogs_cors', state.useCors ? '1' : '0');
+    localStorage.setItem('plentylogs_corsProxy', state.corsProxy);
+  }
+
+  function loadConfig() {
+    state.pid = localStorage.getItem('plentylogs_pid') || '';
+    state.token = localStorage.getItem('plentylogs_token') || '';
+    state.useCors = localStorage.getItem('plentylogs_cors') !== '0';
+    state.corsProxy = localStorage.getItem('plentylogs_corsProxy') || 'https://corsproxy.io/?';
+  }
+
+  function clearConfig() {
+    localStorage.removeItem('plentylogs_pid');
+    localStorage.removeItem('plentylogs_token');
+    localStorage.removeItem('plentylogs_cors');
+    localStorage.removeItem('plentylogs_corsProxy');
+  }
+
+  // # Filtering
+  function matchesFilter(entry) {
+    if (!state.activeLevels.has(entry.level)) return false;
+    if (state.searchQuery) {
+      const q = state.searchQuery.toLowerCase();
+      const haystack = [
+        entry.integration || '',
+        entry.identifier || '',
+        entry.codeMessage || '',
+        String(entry.code || ''),
+        JSON.stringify(entry.additionalInfo || {}),
+        JSON.stringify(entry.references || [])
+      ].join(' ').toLowerCase();
+      if (!haystack.includes(q)) return false;
+    }
+    return true;
+  }
+
+  // # Rendering
+  function createLogRow(entry, isNew) {
+    const tr = document.createElement('tr');
+    tr.className = 'log-row' + (isNew ? ' new-entry' : '');
+    tr.dataset.id = entry.id;
+    tr.setAttribute('role', 'row');
+    tr.setAttribute('tabindex', '0');
+    tr.setAttribute('aria-label', `${entry.level} log at ${formatTime(entry.createdAt)}`);
+
+    tr.innerHTML = `
+      <td title="${escapeHtml(formatDate(entry.createdAt))}">${escapeHtml(formatTime(entry.createdAt))}</td>
+      <td><span class="level-badge level-${escapeHtml(entry.level)}">${escapeHtml(entry.level)}</span></td>
+      <td title="${escapeHtml(entry.integration || '')}">${escapeHtml(shortIntegration(entry.integration))}</td>
+      <td title="${escapeHtml(entry.identifier || '')}">${escapeHtml(entry.identifier || '')}</td>
+      <td title="${escapeHtml(entry.codeMessage || '')}">${escapeHtml(truncate(entry.codeMessage || '', 80))}</td>
+    `;
+    return tr;
+  }
+
+  function renderLogs() {
+    dom.logBody.textContent = '';
+    const fragment = document.createDocumentFragment();
+    let count = 0;
+    for (const entry of state.logs) {
+      if (matchesFilter(entry)) {
+        fragment.appendChild(createLogRow(entry, false));
+        count++;
+      }
+    }
+    dom.logBody.appendChild(fragment);
+    dom.emptyState.style.display = count === 0 ? 'flex' : 'none';
+    updateStatus();
+  }
+
+  function appendNewLogs(entries) {
+    if (entries.length === 0) return;
+    const container = dom.logContainer;
+    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 50;
+    let hasAlertSound = false;
+
+    for (const entry of entries) {
+      if (matchesFilter(entry)) {
+        const row = createLogRow(entry, true);
+        dom.logBody.appendChild(row);
+        if (entry.level === 'error' || entry.level === 'critical' || entry.level === 'emergency') {
+          hasAlertSound = true;
+        }
+      }
+    }
+
+    // # Trim excess rows from DOM
+    while (dom.logBody.children.length > state.maxEntries) {
+      dom.logBody.removeChild(dom.logBody.firstChild);
+    }
+
+    dom.emptyState.style.display = dom.logBody.children.length === 0 ? 'flex' : 'none';
+
+    if (hasAlertSound) playBeep();
+    if (state.autoScroll && wasAtBottom) {
+      container.scrollTop = container.scrollHeight;
+    }
+    updateStatus();
+  }
+
+  function updateStatus() {
+    const visibleCount = dom.logBody.children.length;
+    dom.logCount.textContent = `${visibleCount} logs (${state.logs.length} total)`;
+    dom.pollingStatus.textContent = state.paused ? 'Polling: paused' : `Polling: ${state.interval / 1000}s`;
+    dom.statusDot.className = 'status-dot ' + (state.paused ? 'disconnected' : 'polling');
+    dom.statusText.textContent = state.paused ? 'Paused' : 'Connected';
+  }
+
+  function updateLastFetch() {
+    dom.lastFetch.textContent = `Last fetch: ${new Date().toLocaleTimeString('en-GB')}`;
+  }
+
+  // # Detail Panel
+  function openDetail(entry) {
+    state.selectedLog = entry;
+    dom.detailOverlay.classList.add('open');
+    dom.detailPanel.classList.add('open');
+    dom.detailPanel.setAttribute('aria-hidden', 'false');
+    dom.detailOverlay.setAttribute('aria-hidden', 'false');
+
+    const additionalInfoStr = entry.additionalInfo
+      ? JSON.stringify(entry.additionalInfo, null, 2) : 'null';
+    const referencesStr = entry.references && entry.references.length
+      ? JSON.stringify(entry.references, null, 2) : '[]';
+
+    dom.detailBody.innerHTML = `
+      <div class="detail-field">
+        <div class="detail-label">ID</div>
+        <div class="detail-value">${escapeHtml(String(entry.id))}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Timestamp</div>
+        <div class="detail-value">${escapeHtml(formatDate(entry.createdAt))}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Level</div>
+        <div class="detail-value"><span class="level-badge level-${escapeHtml(entry.level)}">${escapeHtml(entry.level)}</span></div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Integration</div>
+        <div class="detail-value">${escapeHtml(entry.integration || '-')}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Identifier</div>
+        <div class="detail-value">${escapeHtml(entry.identifier || '-')}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Code</div>
+        <div class="detail-value">${escapeHtml(String(entry.code))}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Message</div>
+        <div class="detail-value">${escapeHtml(entry.codeMessage || '-')}</div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">Additional Info</div>
+        <div class="detail-json">
+          <button class="btn btn-sm copy-btn" type="button" data-copy="additionalInfo" aria-label="Copy additional info to clipboard">Copy</button>
+          <pre>${syntaxHighlightJson(additionalInfoStr)}</pre>
+        </div>
+      </div>
+      <div class="detail-field">
+        <div class="detail-label">References</div>
+        <div class="detail-json">
+          <button class="btn btn-sm copy-btn" type="button" data-copy="references" aria-label="Copy references to clipboard">Copy</button>
+          <pre>${syntaxHighlightJson(referencesStr)}</pre>
+        </div>
+      </div>
+    `;
+
+    // # Copy buttons
+    dom.detailBody.querySelectorAll('.copy-btn').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const field = this.dataset.copy;
+        const text = field === 'additionalInfo' ? additionalInfoStr : referencesStr;
+        navigator.clipboard.writeText(text).then(() => {
+          this.textContent = 'Copied!';
+          setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+        });
+      });
+    });
+
+    dom.detailCloseBtn.focus();
+  }
+
+  function closeDetail() {
+    state.selectedLog = null;
+    dom.detailOverlay.classList.remove('open');
+    dom.detailPanel.classList.remove('open');
+    dom.detailPanel.setAttribute('aria-hidden', 'true');
+    dom.detailOverlay.setAttribute('aria-hidden', 'true');
+  }
+
+  // # Polling
+  async function poll() {
+    if (state.paused) return;
+    try {
+      const params = {};
+      if (state.lastTimestamp) {
+        params.fromDate = formatDateForApi(state.lastTimestamp);
+      }
+      const data = await fetchLogs(params);
+      updateLastFetch();
+
+      if (data.entries && data.entries.length > 0) {
+        const newEntries = [];
+        for (const entry of data.entries) {
+          if (!state.allLogIds.has(entry.id)) {
+            state.allLogIds.add(entry.id);
+            state.logs.push(entry);
+            newEntries.push(entry);
+          }
+        }
+
+        // # Trim state.logs if too large
+        while (state.logs.length > state.maxEntries) {
+          const removed = state.logs.shift();
+          state.allLogIds.delete(removed.id);
+        }
+
+        // # Update lastTimestamp
+        const latestEntry = data.entries[data.entries.length - 1];
+        const latestTime = new Date(latestEntry.createdAt).getTime();
+        if (!state.lastTimestamp || latestTime > new Date(state.lastTimestamp).getTime()) {
+          state.lastTimestamp = latestEntry.createdAt;
+        }
+
+        if (newEntries.length > 0) {
+          appendNewLogs(newEntries);
+        }
+      }
+      updateStatus();
+    } catch (err) {
+      dom.statusDot.className = 'status-dot disconnected';
+      dom.statusText.textContent = `Error: ${err.message}`;
+    }
+  }
+
+  function startPolling() {
+    state.polling = true;
+    state.paused = false;
+    updateStatus();
+    poll();
+    state.pollTimer = setInterval(poll, state.interval);
+  }
+
+  function stopPolling() {
+    state.polling = false;
+    if (state.pollTimer) {
+      clearInterval(state.pollTimer);
+      state.pollTimer = null;
+    }
+  }
+
+  function restartPolling() {
+    stopPolling();
+    if (!state.paused) {
+      startPolling();
+    }
+  }
+
+  function togglePause() {
+    state.paused = !state.paused;
+    dom.pauseBtn.textContent = state.paused ? 'Resume' : 'Pause';
+    dom.pauseBtn.setAttribute('aria-label', state.paused ? 'Resume polling' : 'Pause polling');
+    if (state.paused) {
+      stopPolling();
+    } else {
+      startPolling();
+    }
+    updateStatus();
+  }
+
+  // # Connect / Disconnect
+  async function connect() {
+    const pid = dom.pidInput.value.trim();
+    const token = dom.tokenInput.value.trim();
+    if (!pid || !token) {
+      showLoginError('Please enter both PID and Bearer Token.');
+      return;
+    }
+    state.pid = pid;
+    state.token = token;
+    state.useCors = dom.corsToggle.checked;
+    state.corsProxy = dom.corsProxyInput.value.trim();
+
+    dom.connectBtn.disabled = true;
+    dom.connectBtn.textContent = 'Connecting...';
+    showLoginError('');
+
+    try {
+      await fetchLogs({});
+      saveConfig();
+      showMainUI();
+      startPolling();
+    } catch (err) {
+      showLoginError(`Connection failed: ${err.message}`);
+    } finally {
+      dom.connectBtn.disabled = false;
+      dom.connectBtn.textContent = 'Connect';
+    }
+  }
+
+  function disconnect() {
+    stopPolling();
+    clearConfig();
+    state.pid = '';
+    state.token = '';
+    state.logs = [];
+    state.allLogIds.clear();
+    state.lastTimestamp = null;
+    state.selectedLog = null;
+    dom.logBody.textContent = '';
+    closeDetail();
+    showLoginScreen();
+  }
+
+  function showLoginError(msg) {
+    dom.loginError.textContent = msg;
+    dom.loginError.style.display = msg ? 'block' : 'none';
+  }
+
+  function showMainUI() {
+    dom.loginOverlay.style.display = 'none';
+    dom.mainUI.style.display = 'flex';
+  }
+
+  function showLoginScreen() {
+    dom.mainUI.style.display = 'none';
+    dom.loginOverlay.style.display = 'flex';
+    dom.pidInput.value = state.pid;
+    dom.tokenInput.value = state.token;
+    dom.corsToggle.checked = state.useCors;
+    dom.corsProxyInput.value = state.corsProxy;
+  }
+
+  // # Export
+  function exportLogs() {
+    const data = JSON.stringify(state.logs, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `plentylogs_${state.pid}_${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // # Clear
+  function clearLogs() {
+    state.logs = [];
+    state.allLogIds.clear();
+    state.lastTimestamp = null;
+    dom.logBody.textContent = '';
+    dom.emptyState.style.display = 'flex';
+    updateStatus();
+  }
+
+  // # Event Binding
+  function bindEvents() {
+    // # Login
+    dom.connectBtn.addEventListener('click', connect);
+    dom.pidInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') dom.tokenInput.focus(); });
+    dom.tokenInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') connect(); });
+    dom.corsToggle.addEventListener('change', () => {
+      dom.corsProxyGroup.style.display = dom.corsToggle.checked ? 'block' : 'none';
+    });
+
+    // # Header actions
+    dom.pauseBtn.addEventListener('click', togglePause);
+    dom.disconnectBtn.addEventListener('click', disconnect);
+    dom.exportBtn.addEventListener('click', exportLogs);
+    dom.clearBtn.addEventListener('click', clearLogs);
+
+    dom.intervalSelect.addEventListener('change', () => {
+      state.interval = parseInt(dom.intervalSelect.value, 10);
+      if (state.polling && !state.paused) restartPolling();
+      updateStatus();
+    });
+
+    dom.autoScrollToggle.addEventListener('change', () => {
+      state.autoScroll = dom.autoScrollToggle.checked;
+    });
+
+    dom.soundToggle.addEventListener('change', () => {
+      state.soundEnabled = dom.soundToggle.checked;
+      // # Initialize audio context on user gesture
+      if (state.soundEnabled && !state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    });
+
+    // # Level toggles
+    levelBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const level = btn.dataset.level;
+        btn.classList.toggle('active');
+        if (state.activeLevels.has(level)) {
+          state.activeLevels.delete(level);
+        } else {
+          state.activeLevels.add(level);
+        }
+        renderLogs();
+      });
+    });
+
+    // # Filters with debounce
+    let filterTimer = null;
+    function onFilterChange() {
+      clearTimeout(filterTimer);
+      filterTimer = setTimeout(() => {
+        state.filterIntegration = dom.filterIntegration.value.trim();
+        state.filterIdentifier = dom.filterIdentifier.value.trim();
+        state.searchQuery = dom.searchInput.value.trim();
+        renderLogs();
+      }, 300);
+    }
+    dom.filterIntegration.addEventListener('input', onFilterChange);
+    dom.filterIdentifier.addEventListener('input', onFilterChange);
+    dom.searchInput.addEventListener('input', onFilterChange);
+
+    // # Log row click (event delegation)
+    dom.logBody.addEventListener('click', (e) => {
+      const row = e.target.closest('.log-row');
+      if (!row) return;
+      const id = parseInt(row.dataset.id, 10);
+      const entry = state.logs.find(l => l.id === id);
+      if (entry) openDetail(entry);
+    });
+
+    dom.logBody.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        const row = e.target.closest('.log-row');
+        if (!row) return;
+        e.preventDefault();
+        const id = parseInt(row.dataset.id, 10);
+        const entry = state.logs.find(l => l.id === id);
+        if (entry) openDetail(entry);
+      }
+    });
+
+    // # Detail panel
+    dom.detailCloseBtn.addEventListener('click', closeDetail);
+    dom.detailOverlay.addEventListener('click', closeDetail);
+
+    // # Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      const tag = (e.target.tagName || '').toLowerCase();
+      const isInput = tag === 'input' || tag === 'textarea' || tag === 'select';
+
+      if (e.key === 'Escape') {
+        closeDetail();
+        return;
+      }
+
+      if (isInput) return;
+
+      if (e.key === ' ') {
+        e.preventDefault();
+        togglePause();
+      } else if (e.key === 'c' || e.key === 'C') {
+        clearLogs();
+      }
+    });
+  }
+
+  // # Init
+  function init() {
+    loadConfig();
+    bindEvents();
+
+    if (state.pid && state.token) {
+      dom.pidInput.value = state.pid;
+      dom.tokenInput.value = state.token;
+      dom.corsToggle.checked = state.useCors;
+      dom.corsProxyInput.value = state.corsProxy;
+      // # Auto-connect
+      showMainUI();
+      startPolling();
+    } else {
+      showLoginScreen();
+    }
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
