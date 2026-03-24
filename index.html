@@ -1326,8 +1326,8 @@ html, body {
     dom.logBody.addEventListener('click', (e) => {
       const row = e.target.closest('.log-row');
       if (!row) return;
-      const id = parseInt(row.dataset.id, 10);
-      const entry = state.logs.find(l => l.id === id);
+      const id = row.dataset.id;
+      const entry = state.logs.find(l => String(l.id) === id);
       if (entry) openDetail(entry);
     });
 
@@ -1336,8 +1336,8 @@ html, body {
         const row = e.target.closest('.log-row');
         if (!row) return;
         e.preventDefault();
-        const id = parseInt(row.dataset.id, 10);
-        const entry = state.logs.find(l => l.id === id);
+        const id = row.dataset.id;
+        const entry = state.logs.find(l => String(l.id) === id);
         if (entry) openDetail(entry);
       }
     });
