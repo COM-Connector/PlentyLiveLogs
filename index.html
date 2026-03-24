@@ -846,7 +846,7 @@ html, body {
 
   // # API
   function buildUrl(params) {
-    const base = `https://${state.pid}.plentymarkets-cloud01.com/rest/logs`;
+    const base = `https://p${state.pid}.my.plentysystems.com/rest/logs`;
     const url = state.useCors ? `${state.corsProxy}${encodeURIComponent(base)}` : base;
     const query = new URLSearchParams();
     query.set('itemsPerPage', '50');
