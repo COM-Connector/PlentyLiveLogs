@@ -1028,12 +1028,20 @@ html, body {
       </div>
       <div class="detail-field">
         <div class="detail-label">Code</div>
-        <div class="detail-value">${escapeHtml(String(entry.code))}</div>
+        <div class="detail-value">${escapeHtml(String(entry.code || '-'))}</div>
       </div>
       <div class="detail-field">
         <div class="detail-label">Message</div>
-        <div class="detail-value">${escapeHtml(entry.codeMessage || '-')}</div>
+        <div class="detail-value" style="white-space:pre-wrap;word-break:break-all;">${escapeHtml(entry.codeMessage || '-')}</div>
       </div>
+      ${entry.callerFunction ? `<div class="detail-field">
+        <div class="detail-label">Caller</div>
+        <div class="detail-value">${escapeHtml(entry.callerFunction)}${entry.callerLine ? ' :' + escapeHtml(entry.callerLine) : ''}</div>
+      </div>` : ''}
+      ${entry.translations_de ? `<div class="detail-field">
+        <div class="detail-label">Translation (DE)</div>
+        <div class="detail-value">${escapeHtml(entry.translations_de)}</div>
+      </div>` : ''}
       <div class="detail-field">
         <div class="detail-label">Additional Info</div>
         <div class="detail-json">
@@ -1087,6 +1095,16 @@ html, body {
       if (data.entries && data.entries.length > 0) {
         const newEntries = [];
         for (const entry of data.entries) {
+          // Normalize: API returns uppercase levels (ERROR, INFO, etc.)
+          if (entry.level) entry.level = entry.level.toLowerCase();
+          // Normalize references: API uses {type, value} not {referenceType, referenceValue}
+          if (Array.isArray(entry.references)) {
+            entry.references = entry.references.map(ref => ({
+              referenceType: ref.referenceType || ref.type || '',
+              referenceValue: ref.referenceValue || ref.value || '',
+              ...ref
+            }));
+          }
           if (!state.allLogIds.has(entry.id)) {
             state.allLogIds.add(entry.id);
             state.logs.push(entry);
