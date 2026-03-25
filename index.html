@@ -45,6 +45,36 @@
   --transition: 150ms ease;
 }
 
+[data-theme="light"] {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f6f8fa;
+  --bg-tertiary: #e9ecef;
+  --bg-hover: #d0d7de;
+  --border: #d0d7de;
+  --text-primary: #1f2328;
+  --text-secondary: #656d76;
+  --text-muted: #8b949e;
+  --accent: #0969da;
+  --accent-hover: #0550ae;
+  --error: #cf222e;
+  --error-bg: rgba(207,34,46,0.12);
+  --warning: #9a6700;
+  --warning-bg: rgba(154,103,0,0.12);
+  --info: #0969da;
+  --info-bg: rgba(9,105,218,0.12);
+  --debug: #656d76;
+  --debug-bg: rgba(101,109,118,0.12);
+  --critical: #a40e26;
+  --critical-bg: rgba(164,14,38,0.12);
+  --alert: #8250df;
+  --alert-bg: rgba(130,80,223,0.12);
+  --notice: #1a7f37;
+  --notice-bg: rgba(26,127,55,0.12);
+  --emergency: #bf3989;
+  --emergency-bg: rgba(191,57,137,0.12);
+  --success: #1a7f37;
+}
+
 html, body {
   height: 100%;
   background: var(--bg-primary);
@@ -583,7 +613,10 @@ html, body {
   <!-- Login Overlay -->
   <div class="login-overlay" id="loginOverlay">
     <div class="login-card" role="dialog" aria-label="Connection Settings">
-      <h1>PlentyONE Live Logs</h1>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <h1>PlentyONE Live Logs</h1>
+        <button class="btn btn-sm" id="themeToggleLogin" type="button" aria-label="Toggle light/dark mode">☀️</button>
+      </div>
       <p>Connect to your PlentyONE system to stream logs in real-time.</p>
       <div class="form-group">
         <label for="pidInput">PID (System ID)</label>
@@ -618,6 +651,8 @@ html, body {
     <header class="header" role="banner">
       <span class="header-title">PlentyONE Live Logs <span id="pidBadge" class="pid-badge" style="display:none;"></span></span>
       <div class="header-actions">
+        <button class="btn btn-sm" id="themeToggle" type="button" aria-label="Toggle light/dark mode">☀️</button>
+        <div class="toolbar-separator"></div>
         <label class="checkbox-row" style="margin:0;font-size:12px;">
           <input type="checkbox" id="soundToggle">
           <span>Sound</span>
@@ -766,6 +801,8 @@ html, body {
     exportBtn: document.getElementById('exportBtn'),
     clearBtn: document.getElementById('clearBtn'),
     disconnectBtn: document.getElementById('disconnectBtn'),
+    themeToggle: document.getElementById('themeToggle'),
+    themeToggleLogin: document.getElementById('themeToggleLogin'),
     filterIntegration: document.getElementById('filterIntegration'),
     filterIdentifier: document.getElementById('filterIdentifier'),
     searchInput: document.getElementById('searchInput'),
@@ -1352,6 +1389,8 @@ html, body {
     // # Header actions
     dom.pauseBtn.addEventListener('click', togglePause);
     dom.disconnectBtn.addEventListener('click', disconnect);
+    dom.themeToggle.addEventListener('click', toggleTheme);
+    dom.themeToggleLogin.addEventListener('click', toggleTheme);
     dom.exportBtn.addEventListener('click', exportLogs);
     dom.clearBtn.addEventListener('click', clearLogs);
 
@@ -1461,9 +1500,24 @@ html, body {
     });
   }
 
+  // # Theme
+  function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    const icon = theme === 'light' ? '🌙' : '☀️';
+    dom.themeToggle.textContent = icon;
+    dom.themeToggleLogin.textContent = icon;
+    localStorage.setItem('plentylogs_theme', theme);
+  }
+
+  function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(current === 'dark' ? 'light' : 'dark');
+  }
+
   // # Init
   function init() {
     loadConfig();
+    applyTheme(localStorage.getItem('plentylogs_theme') || 'dark');
     bindEvents();
 
     if (state.pid && state.token) {
