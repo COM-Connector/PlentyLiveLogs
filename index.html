@@ -595,7 +595,7 @@ html, body {
         </label>
         <div class="form-group" id="corsProxyGroup">
           <label for="corsProxyInput">CORS Proxy Prefix</label>
-          <input type="text" id="corsProxyInput" class="input" value="https://corsproxy.io/?">
+          <input type="text" id="corsProxyInput" class="input" value="https://corsproxy.io/?url=">
           <div class="input-hint">Or disable and use a browser extension like "CORS Unblock"</div>
         </div>
       </div>
@@ -717,7 +717,7 @@ html, body {
     pid: '',
     token: '',
     useCors: true,
-    corsProxy: 'https://corsproxy.io/?',
+    corsProxy: 'https://corsproxy.io/?url=',
     logs: [],
     allLogIds: new Set(),
     lastTimestamp: null,
@@ -894,7 +894,7 @@ html, body {
     state.pid = localStorage.getItem('plentylogs_pid') || '';
     state.token = localStorage.getItem('plentylogs_token') || '';
     state.useCors = localStorage.getItem('plentylogs_cors') !== '0';
-    state.corsProxy = localStorage.getItem('plentylogs_corsProxy') || 'https://corsproxy.io/?';
+    state.corsProxy = localStorage.getItem('plentylogs_corsProxy') || 'https://corsproxy.io/?url=';
   }
 
   function clearConfig() {
