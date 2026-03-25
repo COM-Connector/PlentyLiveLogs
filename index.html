@@ -849,6 +849,31 @@ html, body {
     }
   }
 
+  function playErrorAlert() {
+    if (!state.soundEnabled) return;
+    try {
+      if (!state.audioCtx) {
+        state.audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      const ctx = state.audioCtx;
+      // # Two-tone alarm: short high beep, pause, lower beep
+      [0, 0.2].forEach((offset, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'square';
+        osc.frequency.value = i === 0 ? 1000 : 600;
+        gain.gain.setValueAtTime(0.15, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.15);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.15);
+      });
+    } catch (_) {
+      // # Audio not available
+    }
+  }
+
   // # API
   function buildUrl(params) {
     const base = `https://p${state.pid}.my.plentysystems.com/rest/logs`;
@@ -987,7 +1012,7 @@ html, body {
 
     dom.emptyState.style.display = dom.logBody.children.length === 0 ? 'flex' : 'none';
 
-    if (hasAlertSound) playBeep();
+    if (hasAlertSound) playErrorAlert();
     if (state.autoScroll && wasAtBottom) {
       container.scrollTop = container.scrollHeight;
     }
