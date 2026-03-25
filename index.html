@@ -90,11 +90,8 @@ html, body {
 
 .pid-badge {
   font-size: 11px;
-  font-weight: 600;
-  font-family: var(--font-mono);
+  font-weight: 400;
   color: var(--text-secondary);
-  white-space: nowrap;
-  margin-left: -4px;
 }
 
 .header-actions {
@@ -619,8 +616,7 @@ html, body {
   <div id="mainUI" style="display:none;flex-direction:column;height:100vh;">
     <!-- Header -->
     <header class="header" role="banner">
-      <span class="header-title">PlentyONE Live Logs</span>
-      <span id="pidBadge" class="pid-badge" style="display:none;"></span>
+      <span class="header-title">PlentyONE Live Logs <span id="pidBadge" class="pid-badge" style="display:none;"></span></span>
       <div class="header-actions">
         <label class="checkbox-row" style="margin:0;font-size:12px;">
           <input type="checkbox" id="soundToggle">
@@ -1308,7 +1304,7 @@ html, body {
   function showMainUI() {
     dom.loginOverlay.style.display = 'none';
     dom.mainUI.style.display = 'flex';
-    dom.pidBadge.textContent = 'PID ' + state.pid;
+    dom.pidBadge.textContent = '(' + state.pid + ')';
     dom.pidBadge.style.display = 'inline-block';
   }
 
