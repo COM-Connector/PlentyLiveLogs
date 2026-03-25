@@ -88,6 +88,18 @@ html, body {
   letter-spacing: 0.5px;
 }
 
+.pid-badge {
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--bg-primary);
+  background: var(--accent);
+  padding: 2px 10px;
+  border-radius: var(--radius);
+  white-space: nowrap;
+  letter-spacing: 0.5px;
+}
+
 .header-actions {
   display: flex;
   align-items: center;
@@ -611,6 +623,7 @@ html, body {
     <!-- Header -->
     <header class="header" role="banner">
       <span class="header-title">PlentyONE Live Logs</span>
+      <span id="pidBadge" class="pid-badge" style="display:none;"></span>
       <div class="header-actions">
         <label class="checkbox-row" style="margin:0;font-size:12px;">
           <input type="checkbox" id="soundToggle">
@@ -742,6 +755,7 @@ html, body {
   const dom = {
     loginOverlay: document.getElementById('loginOverlay'),
     pidInput: document.getElementById('pidInput'),
+    pidBadge: document.getElementById('pidBadge'),
     tokenInput: document.getElementById('tokenInput'),
     corsToggle: document.getElementById('corsToggle'),
     corsProxyInput: document.getElementById('corsProxyInput'),
@@ -1285,6 +1299,7 @@ html, body {
     state.selectedLog = null;
     dom.logBody.textContent = '';
     closeDetail();
+    dom.pidBadge.style.display = 'none';
     showLoginScreen();
   }
 
@@ -1296,6 +1311,8 @@ html, body {
   function showMainUI() {
     dom.loginOverlay.style.display = 'none';
     dom.mainUI.style.display = 'flex';
+    dom.pidBadge.textContent = 'PID ' + state.pid;
+    dom.pidBadge.style.display = 'inline-block';
   }
 
   function showLoginScreen() {
